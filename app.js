@@ -177,7 +177,8 @@ const self = module.exports = {
           }))
         }
         await Promise.all(promises)
-        console.log(chalk.green('✅ Succeed'))
+				console.log(chalk.green('✅ Succeed'))
+				await browser.close()
       }
     } else if (mode === 'account'){
       const account = quest.account
@@ -207,7 +208,8 @@ const self = module.exports = {
         }))
       }
       await Promise.all(promises)
-      console.log(chalk.green('✅ Succeed'))
+			console.log(chalk.green('✅ Succeed'))
+			await browser.close()
     } else if (mode === 'locations'){
       const locations = quest.locations
       const scrollLimit = parseInt(quest.scroll)
@@ -236,8 +238,54 @@ const self = module.exports = {
         }))
       }
       await Promise.all(promises)
-      console.log(chalk.green('✅ Succeed'))
-    }
-    await browser.close()
+			console.log(chalk.green('✅ Succeed'))
+			await browser.close()
+    }else if (mode === 'saved'){
+			const loginPage = await browser.newPage();
+			loginPage.goto('https://www.instagram.com/accounts/login/?source=auth_switcher', {
+					timeout: 0
+			})
+			console.log(chalk.blue('Please go to chromium login in your account. It will going on after 2 min.'))
+			console.log(chalk.blue('Please go to chromium login in your account. It will going on after 2 min.'))
+			console.log(chalk.blue('Please go to chromium login in your account. It will going on after 2 min.'))
+			await loginPage.waitForNavigation({
+				waitUntil: 'load'
+			});
+			setTimeout(async()=>{
+				//login by real people 2 min after, go to saved 
+				const account = quest.account
+				const scrollLimit = parseInt(quest.scroll)
+				await self.makeFolder(account, 'account')
+				const page = await browser.newPage()
+				page.on('error', () => {
+					console.log(chalk.red('🚀 Page Reload'))
+					page.reload()
+				})
+				await page.goto('https://www.instagram.com/' + account + '/', {
+					timeout: 0
+				})
+				let urlImg = await self.getMedia(page, scrollLimit, account, 'account')
+				console.log(chalk.cyan('🌄 Image Total: ' + urlImg.length))
+				const arraySplit = await self.splitUp(urlImg, 10) // Bot 10
+				await page.close()
+				const promises = []
+				for (let i = 0; i < arraySplit.length; i++) {
+					promises.push(browser.newPage().then(async page => {
+						page.on('error', () => {
+							console.log(chalk.red('🚀 Page Reload'))
+							page.reload()
+						})
+						await self.saveImage(page, account, arraySplit[i], i, 'account')
+						await page.close()
+					}))
+				}
+				await Promise.all(promises)
+				console.log(chalk.green('✅ Succeed'))
+				await browser.close()
+			},120000)
+			
+
+		}
+    
   }
 }

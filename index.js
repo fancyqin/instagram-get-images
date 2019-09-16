@@ -18,7 +18,7 @@ const askMode = () => {
     type: 'list',
     name: 'mode',
     message: 'Select Mode:',
-    choices: ['Hashtags', 'Account', 'Locations'],
+    choices: ['Hashtags', 'Account', 'Locations','Saved'],
     validate: function (value) {
       if (value.length) {
         return true
@@ -133,9 +133,9 @@ const setQuest = async () => {
   if (mode.mode === 'Hashtags') {
     const quest = await askQuestionsHashtag()
     await app.main(quest, 'hashtags')
-  } else if (mode.mode === 'Account') {
+  } else if (mode.mode === 'Account' || mode.mode === 'Saved') {
     const quest = await askQuestionsAccount()
-    await app.main(quest, 'account')
+    await app.main(quest, mode.mode === 'Account'?'account':'saved')
   } else if (mode.mode === 'Locations') {
     const quest = await askQuestionsLocation()
     await app.main(quest, 'locations')
