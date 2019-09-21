@@ -128,7 +128,7 @@ const self = module.exports = {
         } else if (mode === 'locations') {
           modePath = './result/locations/'
         }
-        fs.writeFile(modePath + item + '/bot-' + bot + '-' + count + '.jpg', await viewSource.buffer(), function (err) {
+        fs.writeFile(modePath + item + '/img-' + bot + '-' + count + '.jpg', await viewSource.buffer(), function (err) {
           if (err) {
             throw (err)
           }
@@ -261,7 +261,7 @@ const self = module.exports = {
 					console.log(chalk.red('🚀 Page Reload'))
 					page.reload()
 				})
-				await page.goto('https://www.instagram.com/' + account + '/', {
+				await page.goto('https://www.instagram.com/' + account + '/saved', {
 					timeout: 0
 				})
 				let urlImg = await self.getMedia(page, scrollLimit, account, 'account')
