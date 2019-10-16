@@ -121,7 +121,7 @@ const self = module.exports = {
     let imgObj = imgInfo || urlImg
     for (const img of imgObj) {
       try {
-        let viewSource = await page.goto(img.url)
+        let viewSource = await page.goto(img.url,{timeout:0})
         let modePath = '' 
         if (mode === 'hashtags') {
           modePath = './result/hashtags/'
