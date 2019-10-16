@@ -68,6 +68,7 @@ const self = module.exports = {
     return mediaText
   },
 
+
   makeFolder: async (item, mode) => {
     try {
       if (mode === 'hashtags') {
@@ -114,12 +115,13 @@ const self = module.exports = {
     return result
   },
 
-  saveImage: async (page, item, urlImg, bot, mode) => {
+  saveImage: async (page, item, urlImg, bot, mode ,imgInfo) => {
     let count = 0
-    let countTotal = urlImg.length
-    for (const img of urlImg) {
+    let countTotal = imgInfo ? imgInfo.length : urlImg.length
+    let imgObj = imgInfo || urlImg
+    for (const img of imgObj) {
       try {
-        let viewSource = await page.goto(img)
+        let viewSource = await page.goto(img.url)
         let modePath = '' 
         if (mode === 'hashtags') {
           modePath = './result/hashtags/'
@@ -128,7 +130,8 @@ const self = module.exports = {
         } else if (mode === 'locations') {
           modePath = './result/locations/'
         }
-        fs.writeFile(modePath + item + '/img-' + bot + '-' + count + '.jpg', await viewSource.buffer(), function (err) {
+        let imguri =  imgInfo ? modePath + item + '/' + item + '-' + img.time +'-'+ img.shortcode+ '.jpg':modePath + item + '/' + item + '-' + bot + count + '.jpg'
+        fs.writeFile(imguri, await viewSource.buffer(), function (err) {
           if (err) {
             throw (err)
           }
@@ -136,7 +139,7 @@ const self = module.exports = {
           console.log(chalk.green('BOT🤖[' + bot + ']The file was saved! [ ' + count + ' / ' + countTotal + ' ]'))
         })
       } catch (error) {
-        console.log(chalk.red('❌ Error: invalid URL undefined'))
+        console.log(chalk.red('❌ Error: invalid URL undefined',error))
         continue
       }
     }
@@ -192,9 +195,41 @@ const self = module.exports = {
       await page.goto('https://www.instagram.com/' + account + '/', {
         timeout: 0
       })
-      let urlImg = await self.getMedia(page, scrollLimit, account, 'account')
-      console.log(chalk.cyan('🌄 Image Total: ' + urlImg.length))
-      const arraySplit = await self.splitUp(urlImg, 10) // Bot 10
+      
+      let imgInfo = [];
+      const _sharedData = await page.evaluate(() => {
+        return window._sharedData;
+      });
+      
+    //   if(_sharedData && _sharedData.entry_data.ProfilePage[0].graphql.user.edge_felix_video_timeline.edges){
+    //     _sharedData.entry_data.ProfilePage[0].graphql.user.edge_felix_video_timeline.edges.forEach(item=>{
+    //             imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
+    //         });
+    //     }
+    if(_sharedData && _sharedData.entry_data.ProfilePage[0].graphql.user.edge_owner_to_timeline_media.edges){
+        _sharedData.entry_data.ProfilePage[0].graphql.user.edge_owner_to_timeline_media.edges.forEach(item=>{
+                imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
+            });
+        }
+      
+      page.on('response',async response => {
+            
+            if(response.url().includes('/graphql/query')){
+                const text = await response.text();
+                const json = JSON.parse(text);
+                json.data.user.edge_owner_to_timeline_media.edges.forEach(item=>{
+                    imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
+                })
+                // console.log(json.status,json.data.user.edge_owner_to_timeline_media.edges[0].node.owner.username)
+            }
+        })
+
+      await self.getMedia(page, scrollLimit, account, 'account')
+
+      
+      
+      console.log(chalk.cyan('🌄 Image Total: ' + imgInfo.length))
+      const arraySplit = await self.splitUp(imgInfo, 10) // Bot 10
       await page.close()
       const promises = []
       for (let i = 0; i < arraySplit.length; i++) {
@@ -203,13 +238,13 @@ const self = module.exports = {
             console.log(chalk.red('🚀 Page Reload'))
             page.reload()
           })
-          await self.saveImage(page, account, arraySplit[i], i, 'account')
+          await self.saveImage(page, account, arraySplit[i], i, 'account',arraySplit[i])
           await page.close()
         }))
       }
       await Promise.all(promises)
-			console.log(chalk.green('✅ Succeed'))
-			await browser.close()
+        console.log(chalk.green('✅ Succeed'))
+        await browser.close()
     } else if (mode === 'locations'){
       const locations = quest.locations
       const scrollLimit = parseInt(quest.scroll)
