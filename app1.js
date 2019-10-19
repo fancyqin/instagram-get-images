@@ -31,8 +31,8 @@ const self = module.exports = {
       try {
         previousHeight = await page.evaluate('document.body.scrollHeight')
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-        await page.waitForFunction(`document.body.scrollHeight > ${previousHeight}`)
-        await page.waitFor(self.randomInt(400, 1000))
+        await page.waitForFunction(`document.body.scrollHeight > ${previousHeight}`,{timeout: 120000})
+        await page.waitFor(self.randomInt(600, 1300))
         spinner.color = 'yellow'
         let modeName = '' 
         if (mode === 'hashtags') {
@@ -185,66 +185,193 @@ const self = module.exports = {
 				await browser.close()
       }
     } else if (mode === 'account'){
-      const account = quest.account
-      const scrollLimit = parseInt(quest.scroll)
-      await self.makeFolder(account, 'account')
-      const page = await browser.newPage()
-      page.on('error', () => {
-        console.log(chalk.red('🚀 Page Reload'))
-        page.reload()
-      })
-      await page.goto('https://www.instagram.com/' + account + '/', {
-        timeout: 0
-      })
+
+      const scrollLimit = 200
       
-      let imgInfo = [];
-      const _sharedData = await page.evaluate(() => {
-        return window._sharedData;
-      });
       
-    //   if(_sharedData && _sharedData.entry_data.ProfilePage[0].graphql.user.edge_felix_video_timeline.edges){
-    //     _sharedData.entry_data.ProfilePage[0].graphql.user.edge_felix_video_timeline.edges.forEach(item=>{
-    //             imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
-    //         });
-    //     }
-    if(_sharedData && _sharedData.entry_data.ProfilePage[0].graphql.user.edge_owner_to_timeline_media.edges){
-        _sharedData.entry_data.ProfilePage[0].graphql.user.edge_owner_to_timeline_media.edges.forEach(item=>{
-                imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
-            });
-        }
+      const accountArr = [
+        'abigailratchford',
+        'amandatrivizas',
+        'anacheri',
+        'antjeutgaard',
+        'anastasiamarinahenesey',
+        'brennahblack',
+        'bitnara1105',
+        'hellokimmy309',
+        'its_juliarose',
+        'jessicambartlett',
+        'jun.amaki',
+        'just_hot_modelss',
+        'kaitlynnjanderson',
+        'kikipasso',
+        'kourtney_kellar',
+        'leannabartlett',
+        'lijiao9',
+        'liviagullo',
+        'lucypinder.daily',
+        'lynaritaa',
+        'moezart',
+        'naomihype',
+        'natalee.007',
+        'nataliegolba',
+        'only.the.best_1',
+        'polinaaura',
+        'rachelc00k',
+        'saraunderwood',
+        'sexy.hot.asian.models',
+        'sexyimperial',
+        'shantalmonique',
+        'shimizuairi',
+        'sophiemudd',
+        'sozinovakate',
+        'stefanieknight',
+        'studio977',
+        'the_sexiest_women',
+        'thefitlook',
+        'topdailymodel',
+        'viki_odintcova',
+        'vvcastrillon',
+        'wonderful_girls_xx'
+
+        
+
+    ]
       
-      page.on('response',async response => {
-            
-            if(response.url().includes('/graphql/query')){
-                const text = await response.text();
-                const json = JSON.parse(text);
-                json.data.user.edge_owner_to_timeline_media.edges.forEach(item=>{
-                    imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
-                })
-                // console.log(json.status,json.data.user.edge_owner_to_timeline_media.edges[0].node.owner.username)
-            }
+      for(let account of accountArr) {
+        console.log(account)
+        
+        await self.makeFolder(account, 'account');
+        const page = await browser.newPage()
+        page.on('error', () => {
+          console.log(chalk.red('🚀 Page Reload'))
+          page.reload()
         })
+        await page.waitFor(self.randomInt(1600, 2600))
+        await page.goto('https://www.instagram.com/' + account + '/', {
+          timeout: 0
+        })
+        await page.waitFor(self.randomInt(600, 1300))
 
-      await self.getMedia(page, scrollLimit, account, 'account')
+        
+        
+        let imgInfo = [],graphImgShorts=[],graphImgInfo=[];
+        const _sharedData = await page.evaluate(() => {
+          return window._sharedData;
+        });
+        
+      //   if(_sharedData && _sharedData.entry_data.ProfilePage[0].graphql.user.edge_felix_video_timeline.edges){
+      //     _sharedData.entry_data.ProfilePage[0].graphql.user.edge_felix_video_timeline.edges.forEach(item=>{
+      //             imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
+      //         });
+      //     }
+      if(_sharedData && _sharedData.entry_data.ProfilePage[0].graphql.user.edge_owner_to_timeline_media.edges){
+          let user = _sharedData.entry_data.ProfilePage[0].graphql.user;
+            user.edge_owner_to_timeline_media.edges.forEach(item=>{
 
+                  imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
+                  if(item.node.__typename === "GraphSidecar"){
+                      graphImgShorts.push(item.node.shortcode)
+                  }
+              });
+              
+          }
+        
+        page.on('response',async response => {
+              
+              if(response.url().includes('/graphql/query')){
+                  const text = await response.text();
+                  const json = JSON.parse(text);
+                  json.data.user.edge_owner_to_timeline_media.edges.forEach(item=>{
 
-      console.log(chalk.cyan('🌄 Image Total: ' + imgInfo.length))
-      const arraySplit = await self.splitUp(imgInfo, 10) // Bot 10
-      await page.close()
-      const promises = []
-      for (let i = 0; i < arraySplit.length; i++) {
-        promises.push(browser.newPage().then(async page => {
-          page.on('error', () => {
-            console.log(chalk.red('🚀 Page Reload'))
-            page.reload()
+                      imgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:item.node.taken_at_timestamp})
+                      if(item.node.__typename === "GraphSidecar"){
+                            graphImgShorts.push(item.node.shortcode)
+                        }
+
+                  })
+                  // console.log(json.status,json.data.user.edge_owner_to_timeline_media.edges[0].node.owner.username)
+              }
           })
-          await self.saveImage(page, account, arraySplit[i], i, 'account',arraySplit[i])
-          await page.close()
-        }))
+  
+        await self.getMedia(page, scrollLimit, account, 'account')
+  
+        
+        
+        // console.log(chalk.cyan('🌄 Image Total: ' + imgInfo.length))
+        // const arraySplit = await self.splitUp(imgInfo, 10) // Bot 10
+        // await page.close()
+        // const promises = []
+        // for (let i = 0; i < arraySplit.length; i++) {
+        //   promises.push(browser.newPage().then(async page => {
+        //     page.on('error', () => {
+        //       console.log(chalk.red('🚀 Page Reload'))
+        //       page.reload()
+        //     })
+        //     await self.saveImage(page, account, arraySplit[i], i, 'account',arraySplit[i])
+        //     await page.close()
+        //   }))
+        // }
+        // await Promise.all(promises)
+
+        
+
+        for(let graphImgShort of graphImgShorts) {
+            const pageGraph = await browser.newPage()
+            pageGraph.on('error', () => {
+                console.log(chalk.red('🚀 pageGraph Reload'))
+                pageGraph.reload()
+            })
+            await pageGraph.waitFor(self.randomInt(600, 1000))
+            await pageGraph.goto('https://www.instagram.com/p/' + graphImgShort + '/', {
+                timeout: 0
+            })
+            await pageGraph.waitFor(self.randomInt(1000, 2300))
+            const _pageGraphSharedData = await pageGraph.evaluate(() => {
+                return window._sharedData;
+            });
+            if(_pageGraphSharedData && _pageGraphSharedData.entry_data.PostPage[0].graphql.shortcode_media){
+                let shortcode_media = _pageGraphSharedData.entry_data.PostPage[0].graphql.shortcode_media;
+                let timeee = shortcode_media.taken_at_timestamp
+                shortcode_media.edge_sidecar_to_children.edges.forEach(item=>{
+                        graphImgInfo.push({url:item.node.display_url,shortcode:item.node.shortcode,time:timeee})
+                    });
+                    
+                }
+            await pageGraph.waitFor(self.randomInt(300,1242))
+            await pageGraph.close()
+            
+        }
+        console.log(chalk.cyan('🌄 graphImgInfo Image Total: ' + graphImgInfo.length))
+        const arraySplit1 = await self.splitUp(graphImgInfo, 10) // Bot 10
+        
+        const promises1 = []
+        for (let k = 0; k < arraySplit1.length; k++) {
+          promises1.push(browser.newPage().then(async page => {
+            page.on('error', () => {
+              console.log(chalk.red('🚀 Page Reload'))
+              page.reload()
+            })
+            await self.saveImage(page, account, arraySplit1[k], k, 'account',arraySplit1[k])
+            await page.close()
+          }))
+        }
+        await Promise.all(promises1)
+
+
+        
+        
+        
+        console.log(chalk.green('✅ Succeed!!!!!!!'))
+
+
+
+
       }
-      await Promise.all(promises)
-        console.log(chalk.green('✅ Succeed'))
-        await browser.close()
+      
+      
+
+
+      
     } else if (mode === 'locations'){
       const locations = quest.locations
       const scrollLimit = parseInt(quest.scroll)

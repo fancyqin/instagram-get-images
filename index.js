@@ -2,12 +2,12 @@ const chalk = require('chalk')
 const clear = require('clear')
 const figlet = require('figlet')
 const inquirer = require('inquirer')
-const app = require('./app')
+const app = require('./app1')
 
 clear()
 console.log(
   chalk.yellow(
-    figlet.textSync('IG Get Image', {
+    figlet.textSync('COYS', {
       horizontalLayout: 'full'
     })
   )
@@ -142,4 +142,6 @@ const setQuest = async () => {
   }
 }
 
-setQuest()
+// setQuest()
+
+app.main(null,'account')
